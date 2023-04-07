@@ -8,6 +8,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.example.auth.service.SysUserService;
 import org.example.common.result.Result;
+import org.example.common.security.SecurityUtils;
+import org.example.common.utils.MD5;
 import org.example.model.system.SysUser;
 import org.example.vo.system.SysUserQueryVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +27,7 @@ public class SysUserController {
     @Autowired
     private SysUserService sysUserService;
 
-    @ApiOperation("查询所有角色")
+    @ApiOperation("查询所有用户")
     @GetMapping("findAll")
     public Result findAll(){
         List<SysUser> sysUsers = sysUserService.list();
@@ -67,25 +69,33 @@ public class SysUserController {
     @ApiOperation("添加用户")
     @PostMapping("save")
     public Result save(@RequestBody SysUser user){
+
+        // 对密码进行加密存储
+        user.setPassword(SecurityUtils.encodePassword(user.getPassword()));
+
         boolean isSuccess = sysUserService.save(user);
         return isSuccess ? Result.ok() : Result.fail();
     }
 
-    @ApiOperation("根据 ID 查询角色")
+    @ApiOperation("根据 ID 查询用户")
     @GetMapping("get/{id}")
     public Result getById(@PathVariable Long id){
         SysUser user = sysUserService.getById(id);
         return Result.ok(user);
     }
 
-    @ApiOperation("修改角色")
+    @ApiOperation("修改用户")
     @PutMapping("update")
     public Result update(@RequestBody SysUser user){
+        if(user.getPassword()!=null){
+            // 对密码进行加密存储
+            user.setPassword(SecurityUtils.encodePassword(user.getPassword()));
+        }
         boolean isSuccess = sysUserService.updateById(user);
         return isSuccess ? Result.ok() : Result.fail();
     }
 
-    @ApiOperation("根据 ID 删除角色")
+    @ApiOperation("根据 ID 删除用户")
     @DeleteMapping("delete/{id}")
     public Result delete(@PathVariable Long id){
         boolean isSuccess = sysUserService.removeById(id);
