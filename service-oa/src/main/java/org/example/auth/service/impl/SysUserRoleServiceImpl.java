@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 @Service
 public class SysUserRoleServiceImpl extends ServiceImpl<SysUserRoleMapper, SysUserRole> implements SysUserRoleService {
 
+
+    @Autowired
+    private SysRoleMapper sysRoleMapper;
     @Autowired
     private SysUserRoleMapper sysUserRoleMapper;
     @Autowired
@@ -69,5 +72,16 @@ public class SysUserRoleServiceImpl extends ServiceImpl<SysUserRoleMapper, SysUs
             userRole.setRoleId(roleId);
             sysUserRoleMapper.insert(userRole);
         }
+    }
+
+    @Override
+    public boolean isAdminByUserId(Long userId) {
+        LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
+        userRoleWrapper.eq(SysUserRole::getUserId,userId);
+        SysUserRole sysUserRole = sysUserRoleMapper.selectOne(userRoleWrapper);
+        LambdaQueryWrapper<SysRole> roleWarpper = new LambdaQueryWrapper<>();
+        roleWarpper.eq(SysRole::getId,sysUserRole.getRoleId());
+        SysRole role = sysRoleMapper.selectOne(roleWarpper);
+        return role.getRoleCode()=="SYSTEM"? true : false;
     }
 }

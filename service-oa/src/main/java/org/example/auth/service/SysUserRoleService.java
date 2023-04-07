@@ -27,4 +27,6 @@ public interface SysUserRoleService extends IService<SysUserRole> {
      * @param assginRoleVo
      */
     void assignUserRole(AssginRoleVo assginRoleVo);
+
+    boolean isAdminByUserId(Long userId);
 }
