@@ -1,11 +1,11 @@
 package org.example.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.auth.mapper.SysRoleMapper;
 import org.example.auth.mapper.SysUserRoleMapper;
 import org.example.auth.service.SysRoleService;
 import org.example.auth.service.SysUserRoleService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.model.system.SysRole;
 import org.example.model.system.SysUserRole;
 import org.example.vo.system.AssginRoleVo;
@@ -77,11 +77,16 @@ public class SysUserRoleServiceImpl extends ServiceImpl<SysUserRoleMapper, SysUs
     @Override
     public boolean isAdminByUserId(Long userId) {
         LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
-        userRoleWrapper.eq(SysUserRole::getUserId,userId);
-        SysUserRole sysUserRole = sysUserRoleMapper.selectOne(userRoleWrapper);
-        LambdaQueryWrapper<SysRole> roleWarpper = new LambdaQueryWrapper<>();
-        roleWarpper.eq(SysRole::getId,sysUserRole.getRoleId());
-        SysRole role = sysRoleMapper.selectOne(roleWarpper);
-        return role.getRoleCode()=="SYSTEM"? true : false;
+        userRoleWrapper.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> userRoleList = sysUserRoleMapper.selectList(userRoleWrapper);
+        for (SysUserRole userRole : userRoleList) {
+            LambdaQueryWrapper<SysRole> roleWarpper = new LambdaQueryWrapper<>();
+            roleWarpper.eq(SysRole::getId, userRole.getRoleId());
+            SysRole role = sysRoleMapper.selectOne(roleWarpper);
+            if (role.getRoleCode().equals("SYSTEM")) {
+                return true;
+            }
+        }
+        return false;
     }
 }
