@@ -2,20 +2,13 @@ package org.example.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import org.example.auth.mapper.SysMenuMapper;
-import org.example.auth.mapper.SysRoleMapper;
-import org.example.auth.mapper.SysUserRoleMapper;
-import org.example.auth.service.SysMenuService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.example.auth.service.SysRoleService;
+import org.example.auth.mapper.SysMenuMapper;
+import org.example.auth.service.SysMenuService;
 import org.example.auth.service.SysUserRoleService;
-import org.example.auth.service.SysUserService;
 import org.example.auth.utils.MenuHelper;
 import org.example.common.config.exception.OAException;
 import org.example.model.system.SysMenu;
-import org.example.model.system.SysRole;
-import org.example.model.system.SysUser;
-import org.example.model.system.SysUserRole;
 import org.example.vo.system.MetaVo;
 import org.example.vo.system.RouterVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +33,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Autowired
     private SysUserRoleService sysUserRoleService;
 
+    @Autowired
+    private SysMenuMapper sysMenuMapper;
+
     @Override
     public List<SysMenu> findNodes() {
         //全部权限列表
@@ -47,8 +43,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         if (CollectionUtils.isEmpty(sysMenuList)) return null;
 
         //构建树形数据
-        List<SysMenu> result = MenuHelper.buildTree(sysMenuList);
-        return result;
+        return MenuHelper.buildTree(sysMenuList);
     }
 
     @Override
@@ -69,7 +64,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         // 判断用户是否为管理员，是管理员则显示所有菜单，不是管理员，则查询出对应的菜单
         boolean isAdmin = sysUserRoleService.isAdminByUserId(userId);
         // 通过UserId获取用户角色
-        List<SysMenu> menuList = null;
+        List<SysMenu> menuList;
 
         if(isAdmin){
             LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
@@ -82,8 +77,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         //首先构建成树形结构
         List<SysMenu> sysMenuTreeList = MenuHelper.buildTree(menuList);
         //再进行转换
-        List<RouterVo> routerList = this.buildRouter(sysMenuTreeList);
-        return routerList;
+        return this.buildRouter(sysMenuTreeList);
     }
 
     private List<RouterVo> buildRouter(List<SysMenu> menus) {
@@ -101,13 +95,13 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
             List<SysMenu> children = menu.getChildren();
 
             // 判断是否存在隐藏路由
-            if(menu.getType().intValue()==1){
+            if (menu.getType() == 1) {
                 // 加载隐藏路由
                 List<SysMenu> hideMenuList = children.stream()
-                                            .filter(
-                                                    x -> !StringUtils.isEmpty(x.getComponent())
-                                            ).collect(Collectors.toList());
-                for(SysMenu hide:hideMenuList){
+                        .filter(
+                                x -> !StringUtils.isEmpty(x.getComponent())
+                        ).collect(Collectors.toList());
+                for (SysMenu hide : hideMenuList) {
                     RouterVo hideRouterVo = new RouterVo();
 
                     // 隐藏路由
@@ -119,9 +113,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
                     routers.add(hideRouterVo);
                 }
-            }else{
-                if(CollectionUtils.isEmpty(children)) {
-                    if(children.size()>0){
+            }else {
+                if (!CollectionUtils.isEmpty(children)) {
+                    if (children.size() > 0) {
                         routerVo.setAlwaysShow(true);
                     }
                     // 递归 添加子菜单
@@ -132,32 +126,33 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         }
         return routers;
     }
+
     public String getRouterPath(SysMenu menu) {
         String routerPath = "/" + menu.getPath();
-        if(menu.getParentId().intValue() != 0) {
+        if (menu.getParentId().intValue() != 0) {
             routerPath = menu.getPath();
         }
         return routerPath;
     }
+
     @Override
-    public List<String> findUserBtnListByUserId(Long userId) {
+    public List<String> findUserPermsListByUserId(Long userId) {
         // 判断是否为管理员，管理员拥有全部权限
         boolean isAdmin = sysUserRoleService.isAdminByUserId(userId);
 
-        List<SysMenu> btnList = null;
+        List<SysMenu> btnList;
 
-        if(isAdmin){
+        if (isAdmin) {
             LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
             // 选取状态为可用的按钮，并且排序
-            wrapper.eq(SysMenu::getStatus,1).orderByAsc(SysMenu::getSortValue);
+            wrapper.eq(SysMenu::getStatus, 1).orderByAsc(SysMenu::getSortValue);
             btnList = baseMapper.selectList(wrapper);
-        }else{
-            btnList = baseMapper.findMenuListByUserId(userId);
+        } else {
+            btnList = sysMenuMapper.findMenuListByUserId(userId);
         }
-        List<String> btnPerms = btnList.stream()
-                                        .filter(x -> x.getType().intValue()==2)
-                                        .map(x -> x.getPerms())
-                                        .collect(Collectors.toList());
-        return btnPerms;
+        return btnList.stream()
+                .filter(x -> x.getType() == 2)
+                .map(x -> x.getPerms())
+                .collect(Collectors.toList());
     }
 }
